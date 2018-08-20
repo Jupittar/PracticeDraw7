@@ -3,55 +3,81 @@ package com.hencoder.hencoderpracticedraw7.practice.practice02;
 import android.animation.ObjectAnimator;
 import android.animation.TypeEvaluator;
 import android.content.Context;
+import android.graphics.Color;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.animation.LinearInterpolator;
 import android.widget.Button;
 import android.widget.RelativeLayout;
-
 import com.hencoder.hencoderpracticedraw7.R;
 
 public class Practice02HsvEvaluatorLayout extends RelativeLayout {
-    Practice02HsvEvaluatorView view;
-    Button animateBt;
+  Practice02HsvEvaluatorView view;
+  Button animateBt;
 
-    public Practice02HsvEvaluatorLayout(Context context) {
-        super(context);
-    }
+  public Practice02HsvEvaluatorLayout(Context context) {
+    super(context);
+  }
 
-    public Practice02HsvEvaluatorLayout(Context context, AttributeSet attrs) {
-        super(context, attrs);
-    }
+  public Practice02HsvEvaluatorLayout(Context context, AttributeSet attrs) {
+    super(context, attrs);
+  }
 
-    public Practice02HsvEvaluatorLayout(Context context, AttributeSet attrs, int defStyleAttr) {
-        super(context, attrs, defStyleAttr);
-    }
+  public Practice02HsvEvaluatorLayout(Context context, AttributeSet attrs, int defStyleAttr) {
+    super(context, attrs, defStyleAttr);
+  }
 
+  @Override
+  protected void onAttachedToWindow() {
+    super.onAttachedToWindow();
+
+    view = (Practice02HsvEvaluatorView) findViewById(R.id.objectAnimatorView);
+    animateBt = (Button) findViewById(R.id.animateBt);
+
+    animateBt.setOnClickListener(new OnClickListener() {
+      @Override
+      public void onClick(View v) {
+        ObjectAnimator animator = ObjectAnimator.ofInt(view, "color", 0xffff0000, 0xff00ff00);
+        animator.setEvaluator(new HsvEvaluator()); // 使用自定义的 HsvEvaluator
+        animator.setInterpolator(new LinearInterpolator());
+        animator.setDuration(2000);
+        animator.start();
+      }
+    });
+  }
+
+  private class HsvEvaluator implements TypeEvaluator<Integer> {
+
+    private float[] startHsv = new float[3];
+    private float[] endHsv = new float[3];
+    private float[] finalHsv = new float[3];
+
+    // 重写 evaluate() 方法，让颜色按照 HSV 来变化
     @Override
-    protected void onAttachedToWindow() {
-        super.onAttachedToWindow();
+    public Integer evaluate(float fraction, Integer startValue, Integer endValue) {
+      Color.colorToHSV(startValue, startHsv);
+      Color.colorToHSV(endValue, endHsv);
 
-        view = (Practice02HsvEvaluatorView) findViewById(R.id.objectAnimatorView);
-        animateBt = (Button) findViewById(R.id.animateBt);
+      if (endHsv[0] - startHsv[0] > 180) {
+        endHsv[0] -= 360;
+      } else if (endHsv[0] - startHsv[0] < -180) {
+        endHsv[0] += 360;
+      }
 
-        animateBt.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                ObjectAnimator animator = ObjectAnimator.ofInt(view, "color", 0xffff0000, 0xff00ff00);
-                animator.setEvaluator(new HsvEvaluator()); // 使用自定义的 HsvEvaluator
-                animator.setInterpolator(new LinearInterpolator());
-                animator.setDuration(2000);
-                animator.start();
-            }
-        });
+      finalHsv[0] = startHsv[0] + (endHsv[0] - startHsv[0]) * fraction;
+
+      if (finalHsv[0] > 360) {
+        finalHsv[0] -= 360;
+      } else if (finalHsv[0] < 0) {
+        finalHsv[0] += 360;
+      }
+
+      finalHsv[1] = startHsv[1] + (endHsv[1] - startHsv[1]) * fraction;
+      finalHsv[2] = startHsv[2] + (endHsv[2] - startHsv[2]) * fraction;
+
+      int alpha = startValue >> 24 + (int)((endValue >> 24 - startValue >> 24) * fraction);
+
+      return Color.HSVToColor(alpha, finalHsv);
     }
-
-    private class HsvEvaluator implements TypeEvaluator<Integer> {
-
-        // 重写 evaluate() 方法，让颜色按照 HSV 来变化
-        @Override
-        public Integer evaluate(float fraction, Integer startValue, Integer endValue) {
-            return startValue;
-        }
-    }
+  }
 }
